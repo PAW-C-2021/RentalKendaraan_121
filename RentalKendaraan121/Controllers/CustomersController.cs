@@ -19,7 +19,7 @@ namespace RentalKendaraan121.Controllers
         }
 
         // GET: Customers
-        public async Task<IActionResult> Index(string ktsd, string searchString)
+        public async Task<IActionResult> Index(string ktsd, string search, string sortOrder, string currentFilter, int? pageNumber)
         {
             var ktsdList = new List<string>();
             var ktsdQuery = from d in _context.Customers orderby d.Alamat select d.Alamat;
@@ -30,12 +30,40 @@ namespace RentalKendaraan121.Controllers
             {
                 menu = menu.Where(x => x.Alamat == ktsd);
             }
-            if (!string.IsNullOrEmpty(searchString))
+            if (!string.IsNullOrEmpty(search))
             {
-                menu = menu.Where(s => s.NamaCustomer.Contains(searchString) || s.Nik.Contains(searchString)
-                || s.Alamat.Contains(searchString) || s.NoHp.Contains(searchString));
+                menu = menu.Where(s => s.NamaCustomer.Contains(search) || s.Nik.Contains(search)
+                || s.Alamat.Contains(search) || s.NoHp.Contains(search));
             }
-            return View(await menu.ToListAsync());
+            ViewData["CurrentSort"] = sortOrder;
+
+            if (search != null)
+            {
+                pageNumber = 1;
+            }
+            else
+            {
+                search = currentFilter;
+            }
+
+            ViewData["CurrentFilter"] = search;
+
+
+            ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_decs" : "";
+
+            switch (sortOrder)
+            {
+                case "name_decs":
+                    menu = menu.OrderByDescending(s => s.NamaCustomer);
+                    break;
+                default:
+                    menu = menu.OrderBy(s => s.NamaCustomer);
+                    break;
+            }
+
+            int pageSize = 5;
+            /*return View(await menu.ToListAsync());*/
+            return View(await PaginatedList<Customer>.CreateAsync(menu.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
 

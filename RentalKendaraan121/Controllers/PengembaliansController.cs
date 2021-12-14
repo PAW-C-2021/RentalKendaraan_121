@@ -19,7 +19,7 @@ namespace RentalKendaraan121.Controllers
         }
 
         // GET: Pengembalians
-        public async Task<IActionResult> Index(string ktsd, string searchString)
+        public async Task<IActionResult> Index(string ktsd, string searchString, string sortOrder, string currentFilter, int? pageNumber)
         {
             var ktsdList = new List<string>();
             var ktsdQuery = from d in _context.Pengembalians orderby d.IdKondisiNavigation.NamaKondisi select d.IdKondisiNavigation.NamaKondisi;
@@ -34,7 +34,42 @@ namespace RentalKendaraan121.Controllers
             {
                 menu = menu.Where(s => s.TglPengembalian.ToString().Contains(searchString));
             }
-            return View(await menu.ToListAsync());
+            //membuat pagedlist
+            ViewData["CurrentSort"] = sortOrder;
+            if (searchString != null)
+            {
+                pageNumber = 1;
+            }
+            else
+            {
+                searchString = currentFilter;
+            }
+
+            ViewData["CurrentFilter"] = searchString;
+
+            int pageSize = 5;
+
+            //untuk sorting
+            ViewData["NameSortParm"] = String.IsNullOrEmpty(sortOrder) ? "name_desc" : "";
+            ViewData["DateSortParm"] = sortOrder == "Date" ? "date_desc" : "Date";
+
+            switch (sortOrder)
+            {
+                case "name_desc":
+                    menu = menu.OrderByDescending(s => s.Denda);
+                    break;
+                case "Date":
+                    menu = menu.OrderBy(s => s.TglPengembalian);
+                    break;
+                case "date_desc":
+                    menu = menu.OrderByDescending(s => s.TglPengembalian);
+                    break;
+                default: //name ascending
+                    menu = menu.OrderBy(s => s.Denda);
+                    break;
+            }
+
+            return View(await PaginatedList<Pengembalian>.CreateAsync(menu.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // GET: Pengembalians/Details/5
